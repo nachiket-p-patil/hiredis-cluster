@@ -1314,8 +1314,17 @@ static int cluster_update_route_by_addr(redisClusterContext *cc, const char *ip,
     }
 
     if (c->err) {
-        __redisClusterSetError(cc, c->err, c->errstr);
-        goto error;
+        if (strstr(c->errstr, "NOAUTH Authentication required") != NULL) {
+            if (cc->password != NULL) {
+                if (authenticate(cc, c) != REDIS_OK) {
+                    goto error;
+                }
+            } else {
+                __redisClusterSetError(cc, c->err, c->errstr);
+                goto error;
+            }
+        }
+        
     }
 
     if (cc->ssl && cc->ssl_init_fn(c, cc->ssl) != REDIS_OK) {
